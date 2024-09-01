@@ -1,7 +1,7 @@
 window.onload = function () {
     const canvas = document.getElementById("doomCanvas");
     const ctx = canvas.getContext("2d");
-    let image = new Image();
+    let blob = new Blob();
     var xhr = new XMLHttpRequest();
     xhr.open("GET", "out/test/test.svg", true);
     xhr.send();
@@ -13,6 +13,7 @@ window.onload = function () {
         var svgBlob = new Blob([svgAsString], {
             type: "image/svg+xml;charset=utf-8",
         });
+        blob = svgBlob;
         var url = window.URL.createObjectURL(svgBlob);
         var img = new Image();
         img.src = url;
@@ -150,13 +151,9 @@ window.onload = function () {
         //window.requestAnimationFrame(draw);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        ctx.drawImage(
-            image,
-            offsetX,
-            offsetY,
-            image.X * scale,
-            image.Y * scale
-        );
+        createImageBitmap(blob).then((imageBitmap) => {
+            ctx.drawImage(imageBitmap, 0, 0);
+        });
 
         for (let i = 0; i < render.links.length; i++) {
             RenderLine(render.links[i]);
