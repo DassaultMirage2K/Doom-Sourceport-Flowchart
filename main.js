@@ -1,27 +1,42 @@
 window.onload = function () {
     const canvas = document.getElementById("doomCanvas");
     const ctx = canvas.getContext("2d");
+    let image = new Image();
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "test/test.svg", true);
+    xhr.send();
+    xhr.onload = function () {
+        // get the XML tree of the SVG
+        var svgAsXml = xhr.responseXML;
+        // do some modifications to the XML tree
+        var element = svgAsXml.getElementById("hat");
+        element.style.fill = "#ffff00";
+        // convert the XML tree to a string
+        var svgAsString = new XMLSerializer().serializeToString(svgAsXml);
+        // create a new image with the svg string as an ObjectUrl
+        var svgBlob = new Blob([svgAsString], {
+            type: "image/svg+xml;charset=utf-8",
+        });
+        var url = window.URL.createObjectURL(svgBlob);
+        var img = new Image();
+        img.src = url;
+        // copy it to the canvas
+        img.onload = function () {
+            image = img;
+        };
+    };
 
     let offsetX = 0;
     let offsetY = 0;
     let scale = 1;
     let prevMouseX = 0;
     let prevMouseY = 0;
+    let touchMode = "single";
+    prevTouch = [null, null];
 
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     let touching = false;
-    // canvas.onmousedown = (e) => {
-    //     [prevMouseX, prevMouseY] = eventToXY(e);
-    //     canvas.onmousemove = (e) => {
-    //         let [eX, eY] = eventToXY(e);
-    //         offsetX -= (eX - prevMouseX) / scale;
-    //         offsetY -= (eY - prevMouseY) / scale;
-    //         prevMouseX = eX;
-    //         prevMouseY = eY;
-    //     };
-    // };
-
     canvas.onmousedown = touch;
     document.body.addEventListener("mousemove", move);
     document.body.addEventListener("mouseup", released);
@@ -63,16 +78,60 @@ window.onload = function () {
         touching = false;
     }
 
-    // canvas.ontouchstart = (e) => {
-    //     [prevMouseX, prevMouseY] = eventToXY(e);
-    //     canvas.ontouchmove = (e) => {
-    //         let [eX, eY] = eventToXY(e);
-    //         offsetX -= (eX - prevMouseX) / scale;
-    //         offsetY -= (eY - prevMouseY) / scale;
-    //         prevMouseX = eX;
-    //         prevMouseY = eY;
-    //     };
-    // };
+    canvas.addEventListener("touchstart", (event) =>
+        onTouchStart(event.touches)
+    );
+
+    canvas.addEventListener("touchmove", (event) => onTouchMove(event.touches));
+
+    function onTouchStart(touches) {
+        if (touches.length == 1) {
+            touchMode = "single";
+        } else if (touches.length >= 2) {
+            touchMode = "double";
+        }
+
+        prevTouch[0] = touches[0];
+        prevTouch[1] = touches[1];
+
+        onTouchMove(touches);
+    }
+
+    function onTouchMove(touches) {
+        const touch0X = touches[0].pageX;
+        const touch0Y = touches[0].pageY;
+        const prevTouch0X = prevTouch[0].pageX;
+        const prevTouch0Y = prevTouch[0].pageY;
+
+        if (touchMode === "single") {
+            const panX = touch0X - prevTouch0X;
+            const panY = touch0Y - prevTouch0Y;
+
+            offsetX -= panX / scale;
+            offsetY -= panY / scale;
+            draw();
+        }
+        if (touchMode === "double") {
+            const touch1X = touches[1].pageX;
+            const touch1Y = touches[1].pageY;
+            const prevTouch1X = prevTouch[1].pageX;
+            const prevTouch1Y = prevTouch[1].pageY;
+            const distancePreviousTouches = Math.sqrt(
+                Math.pow(prevTouch0X - prevTouch1X, 2) +
+                    Math.pow(prevTouch0Y - prevTouch1Y, 2)
+            );
+
+            const distanceCurrentTouches = Math.sqrt(
+                Math.pow(touch0X - touch1X, 2) + Math.pow(touch0Y - touch1Y, 2)
+            );
+            const zoomAmount = distanceCurrentTouches / distancePreviousTouches;
+            scale *= zoomAmount;
+            draw();
+        }
+
+        prevTouch[0] = touches[0];
+        prevTouch[1] = touches[1];
+    }
 
     canvas.onwheel = (e) => {
         e.preventDefault();
@@ -83,34 +142,20 @@ window.onload = function () {
         offsetY += prevWheelY - afterWheelY;
         draw();
     };
+    function resetCanvasSize() {
+        const canvas = document.getElementById("doomCanvas");
+        canvas.width = document.body.clientWidth;
+        canvas.height = document.body.clientHeight;
+        draw();
+    }
+    window.onresize = resetCanvasSize;
 
     function draw() {
         //window.requestAnimationFrame(draw);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        // for (let i = 0; i <= 100; i += 10) {
-        //     let startX = 0,
-        //         startY = i;
-        //     let endX = 100,
-        //         endY = i;
-        //     [startX, startY] = worldToScreen(startX, startY);
-        //     [endX, endY] = worldToScreen(endX, endY);
-        //     ctx.beginPath();
-        //     ctx.moveTo(startX, startY);
-        //     ctx.lineTo(endX, endY);
-        //     ctx.stroke();
-        // }
-        // for (let i = 0; i <= 100; i += 10) {
-        //     let startX = i,
-        //         startY = 0;
-        //     let endX = i,
-        //         endY = 100;
-        //     [startX, startY] = worldToScreen(startX, startY);
-        //     [endX, endY] = worldToScreen(endX, endY);
-        //     ctx.beginPath();
-        //     ctx.moveTo(startX, startY);
-        //     ctx.lineTo(endX, endY);
-        //     ctx.stroke();
-        // }
+
+        ctx.drawImage(image, offsetX, offsetY, img.X * scale, img.Y * scale);
+
         for (let i = 0; i < render.links.length; i++) {
             RenderLine(render.links[i]);
         }
@@ -122,6 +167,36 @@ window.onload = function () {
             let startY = line.sourceY;
             let endX = line.targetX;
             let endY = line.targetY;
+            let angleX = Math.atan((startY - endY) / (startX - endX));
+            let lengthXCollission = nodeSizeY / 2 / Math.sin(angleX);
+            let lengthYCollission = nodeSizeX / 2 / Math.cos(angleX);
+
+            let [firstX, firstY] = worldToScreen(
+                endX + lengthXCollission * Math.cos(angleX),
+                endY + lengthXCollission * Math.sin(angleX)
+            );
+            let [secondX, secondY] = worldToScreen(
+                endX + lengthYCollission * Math.cos(angleX),
+                endY + lengthYCollission * Math.sin(angleX)
+            );
+            let [thirdX, thirdY] = worldToScreen(
+                endX - lengthXCollission * Math.cos(angleX),
+                endY - lengthXCollission * Math.sin(angleX)
+            );
+            let [fourthX, fourthY] = worldToScreen(
+                endX - lengthYCollission * Math.cos(angleX),
+                endY - lengthYCollission * Math.sin(angleX)
+            );
+
+            // ctx.fillStyle = "red";
+            // ctx.fillRect(firstX - 5, firstY - 5, 10, 10);
+            // ctx.fillStyle = "blue";
+            // ctx.fillRect(secondX - 5, secondY - 5, 10, 10);
+            // ctx.fillStyle = "green";
+            // ctx.fillRect(thirdX - 5, thirdY - 5, 10, 10);
+            // ctx.fillStyle = "yellow";
+            // ctx.fillRect(fourthX - 5, fourthY - 5, 10, 10);
+
             [startX, startY] = worldToScreen(startX, startY);
             [endX, endY] = worldToScreen(endX, endY);
             ctx.strokeStyle = "#000000";
@@ -198,14 +273,13 @@ window.onload = function () {
     function screenToWorld(x, y) {
         return [x / scale + offsetX, y / scale + offsetY];
     }
+    function screenHeight() {
+        return canvas.clientHeight / scale;
+    }
+    function virtualWidth() {
+        return canvas.clientWidth / scale;
+    }
 };
-function resetCanvasSize() {
-    const canvas = document.getElementById("doomCanvas");
-    canvas.width = document.body.clientWidth;
-    canvas.height = document.body.clientHeight;
-    draw();
-}
-window.onresize = resetCanvasSize;
 
 let doomData = [
     {
@@ -373,6 +447,36 @@ let doomData = [
         id: "doomforgba",
         name: "Doom for Game Boy Advance",
         type: "official",
+    },
+    {
+        id: "windoomv1.8",
+        name: "WinDoom v1.8",
+        type: "official",
+        parents: ["windoom"],
+    },
+    {
+        id: "finalforsonyplaystation",
+        name: "Final Doom for Sony PlayStation",
+        type: "official",
+        parents: ["sonyplaystation"],
+    },
+    {
+        id: "segasaturn",
+        name: "Doom for Sega Saturn",
+        type: "official",
+        parents: ["sonyplaystation"],
+    },
+    {
+        id: "doom64",
+        name: "Doom 64",
+        type: "official",
+        parents: ["sonyplaystation"],
+    },
+    {
+        id: "doom642020",
+        name: "Doom 64 (2020)",
+        type: "official",
+        parents: ["doom64"],
     },
 ];
 
