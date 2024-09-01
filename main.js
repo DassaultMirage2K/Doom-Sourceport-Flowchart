@@ -3,7 +3,7 @@ window.onload = function () {
     const ctx = canvas.getContext("2d");
     let image = new Image();
     var xhr = new XMLHttpRequest();
-    xhr.open("GET", "test/test.svg", true);
+    xhr.open("GET", "out/test.svg", true);
     xhr.send();
     xhr.onload = function () {
         // get the XML tree of the SVG
