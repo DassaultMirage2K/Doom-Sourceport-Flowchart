@@ -2,10 +2,28 @@ window.onload = function () {
     const canvas = document.getElementById("doomCanvas");
     const ctx = canvas.getContext("2d");
     let image = new Image();
-
-    const svg = document.getElementById("doomSvg");
-    svg.onload = function () {
-        image = svg;
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "out/test/test.svg", true);
+    xhr.send();
+    xhr.onload = function () {
+        // get the XML tree of the SVG
+        var svgAsXml = xhr.responseXML;
+        // do some modifications to the XML tree
+        var element = svgAsXml.getElementById("hat");
+        element.style.fill = "#ffff00";
+        // convert the XML tree to a string
+        var svgAsString = new XMLSerializer().serializeToString(svgAsXml);
+        // create a new image with the svg string as an ObjectUrl
+        var svgBlob = new Blob([svgAsString], {
+            type: "image/svg+xml;charset=utf-8",
+        });
+        var url = window.URL.createObjectURL(svgBlob);
+        var img = new Image();
+        img.src = url;
+        // copy it to the canvas
+        img.onload = function () {
+            image = img;
+        };
     };
 
     let offsetX = 0;
