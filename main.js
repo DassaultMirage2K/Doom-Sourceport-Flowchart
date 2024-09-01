@@ -136,7 +136,13 @@ window.onload = function () {
         //window.requestAnimationFrame(draw);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        ctx.drawImage(image, offsetX, offsetY, img.X * scale, img.Y * scale);
+        ctx.drawImage(
+            image,
+            offsetX,
+            offsetY,
+            image.X * scale,
+            image.Y * scale
+        );
 
         for (let i = 0; i < render.links.length; i++) {
             RenderLine(render.links[i]);
