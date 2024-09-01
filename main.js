@@ -8,10 +8,6 @@ window.onload = function () {
     xhr.onload = function () {
         // get the XML tree of the SVG
         var svgAsXml = xhr.responseXML;
-        // do some modifications to the XML tree
-        var element = svgAsXml.getElementById("hat");
-        element.style.fill = "#ffff00";
-        // convert the XML tree to a string
         var svgAsString = new XMLSerializer().serializeToString(svgAsXml);
         // create a new image with the svg string as an ObjectUrl
         var svgBlob = new Blob([svgAsString], {
