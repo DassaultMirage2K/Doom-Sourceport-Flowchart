@@ -151,9 +151,9 @@ window.onload = function () {
         //window.requestAnimationFrame(draw);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        createImageBitmap(blob).then((imageBitmap) => {
-            ctx.drawImage(imageBitmap, 0, 0);
-        });
+        //createImageBitmap(blob).then((imageBitmap) //=> {
+//            ctx.drawImage(imageBitmap, //0,0);
+ //       });
 
         for (let i = 0; i < render.links.length; i++) {
             RenderLine(render.links[i]);
